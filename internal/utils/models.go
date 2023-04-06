@@ -11,3 +11,8 @@ type RoomCrypted struct {
 	Hash string `json:"hash"`
 	Key  string `json:"key"`
 }
+
+type RoomConfig struct {
+	Room Room   `json:"room"`
+	Key  string `json:"key"`
+}

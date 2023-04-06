@@ -4,6 +4,8 @@ import (
 	"fmt"
 
 	"github.com/manifoldco/promptui"
+	"github.com/quinton11/chatline/config"
+	"github.com/quinton11/chatline/internal/utils"
 	"github.com/spf13/cobra"
 )
 
@@ -13,12 +15,20 @@ var hostCmd = &cobra.Command{
 	Long:  "Create room sessions. You'll be provided with a hash permitting connections to room to share with peers.",
 	Run: func(cmd *cobra.Command, args []string) {
 		fmt.Println(cmd.Long)
-		hash, err := RoomHashPrompt()
+
+		//read from config file
+		//start room session
+		var roomConfig utils.RoomConfig
+		err := config.ReadConfig(&roomConfig)
 		if err != nil {
 			panic(err)
 		}
 
-		fmt.Println(hash)
+		fmt.Println(roomConfig)
+		fmt.Printf("Hosting Room: %s", roomConfig.Room.Name)
+
+		//verify server ip and port
+		//start socket
 
 	},
 }

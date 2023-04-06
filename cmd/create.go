@@ -6,6 +6,7 @@ import (
 	"github.com/manifoldco/promptui"
 	"github.com/spf13/cobra"
 
+	"github.com/quinton11/chatline/config"
 	"github.com/quinton11/chatline/internal/utils"
 )
 
@@ -43,12 +44,15 @@ var createCmd = &cobra.Command{
 
 		//create hash and print it out
 		rHash, sHash := utils.GenerateHash(token, room)
-		fmt.Println(room)
 		fmt.Println("")
 		fmt.Printf("RoomHash: %s \n", rHash)
 		fmt.Println("")
 
 		fmt.Printf("RoomKey: %s \n", sHash)
+		err = config.WriteConfig(utils.RoomConfig{Room: room, Key: sHash})
+		if err != nil {
+			panic(err)
+		}
 
 		/*
 			Give name to room
