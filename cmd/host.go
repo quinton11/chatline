@@ -13,25 +13,13 @@ var hostCmd = &cobra.Command{
 	Long:  "Create room sessions. You'll be provided with a hash permitting connections to room to share with peers.",
 	Run: func(cmd *cobra.Command, args []string) {
 		fmt.Println(cmd.Long)
-		name, err := RoomNamePrompt()
+		hash, err := RoomHashPrompt()
 		if err != nil {
 			panic(err)
 		}
 
-		fmt.Println(name)
-		//create room uuid, get port and ip
-		//create hash and print it out
-		/* Prompt for room name
+		fmt.Println(hash)
 
-		Create room hash and print to console
-		*/
-
-		/*
-			Give name to room
-			Create hash of server details and print to console.
-			Show prompt to start session
-			Start session to read and write message to and from stdout and socket
-		*/
 	},
 }
 
@@ -40,8 +28,9 @@ func init() {
 	rootCmd.AddCommand(hostCmd)
 }
 
-func RoomNamePrompt() (string, error) {
+func RoomHashPrompt() (string, error) {
 	validate := func(input string) error {
+		/* validate if signed obj is a room type */
 		return nil
 	}
 
@@ -51,9 +40,8 @@ func RoomNamePrompt() (string, error) {
 		Invalid: "{{ . | red }}",
 		Success: "{{ . | bold }}",
 	}
-	fmt.Println("Before prompt")
 	prompt := promptui.Prompt{
-		Label:       "Room Name: ",
+		Label:       "Room Hash: ",
 		HideEntered: true,
 		Validate:    validate,
 		Templates:   templates,
@@ -63,7 +51,6 @@ func RoomNamePrompt() (string, error) {
 	if err != nil {
 		return "", err
 	}
-	fmt.Println("After prompt")
 
 	return res, nil
 }

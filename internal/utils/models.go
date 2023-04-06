@@ -8,6 +8,6 @@ type Room struct {
 }
 
 type RoomCrypted struct {
-	Name string `json:"name"`
 	Hash string `json:"hash"`
+	Key  string `json:"key"`
 }

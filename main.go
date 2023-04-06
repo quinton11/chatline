@@ -2,9 +2,11 @@ package main
 
 import (
 	"github.com/quinton11/chatline/cmd"
+	"github.com/quinton11/chatline/config"
 )
 
-/* Entry */
 func main() {
+	//env
+	config.LoadConfig()
 	cmd.Execute()
 }
