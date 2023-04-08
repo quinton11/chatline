@@ -2,8 +2,10 @@ package cmd
 
 import (
 	"fmt"
+	"log"
 
 	"github.com/manifoldco/promptui"
+	"github.com/quinton11/chatline/internal/socket"
 	"github.com/quinton11/chatline/internal/utils"
 	"github.com/spf13/cobra"
 )
@@ -32,10 +34,13 @@ var joinCmd = &cobra.Command{
 
 		fmt.Println(room)
 
-		//start socket client and attempt connection
-		//using server ip && port
-		//create temp name
-		//start session
+		client := socket.NewClient(room)
+
+		err = client.Connect()
+		if err != nil {
+			//Handle error
+			log.Fatal(err)
+		}
 	},
 }
 

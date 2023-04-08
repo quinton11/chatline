@@ -2,6 +2,7 @@ package config
 
 import (
 	"encoding/json"
+	"fmt"
 	"io/fs"
 	"os"
 	"path"
@@ -44,38 +45,35 @@ func WriteConfig(room utils.RoomConfig) error {
 	//check if file exists
 	b, err := json.Marshal(room)
 	if err != nil {
+		fmt.Println("Error in marshalling")
 		return err
 	}
 
 	dirPath, filePath, err := GetConfigFileDetails()
 	if err != nil {
+		fmt.Println("Get config error")
 		return err
 	}
 
 	//dir
 	err = PathCheck(dirPath, os.ModeDir)
 	if err != nil {
+		fmt.Println("Path check error")
+
 		return err
 	}
 
 	//file
-	var file *os.File
 	_, err = os.Stat(filePath)
 	if os.IsNotExist(err) {
-		file, err = os.Create(filePath)
+		fmt.Println("In not exist error")
+		_, err := os.Create(filePath)
 		if err != nil {
-			return err
-		}
-	} else {
-		file, err = os.OpenFile(filePath, 0, os.ModePerm)
-		if err != nil {
+			fmt.Println("Create error")
 			return err
 		}
 	}
-
-	defer file.Close()
-
-	_, err = file.Write(b)
+	err = os.WriteFile(filePath, b, 0600)
 	if err != nil {
 		return err
 	}
@@ -90,6 +88,9 @@ func ReadConfig(room *utils.RoomConfig) error {
 	}
 
 	err = PathCheck(dirPath, os.ModeDir)
+	if err != nil {
+		return err
+	}
 
 	b, err := os.ReadFile(filePath)
 	if err != nil {
@@ -114,5 +115,6 @@ func PathCheck(dirpath string, mode fs.FileMode) error {
 		}
 		return err
 	}
+
 	return nil
 }

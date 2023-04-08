@@ -5,7 +5,9 @@ import (
 
 	"github.com/manifoldco/promptui"
 	"github.com/quinton11/chatline/config"
+	"github.com/quinton11/chatline/internal/socket"
 	"github.com/quinton11/chatline/internal/utils"
+
 	"github.com/spf13/cobra"
 )
 
@@ -29,6 +31,9 @@ var hostCmd = &cobra.Command{
 
 		//verify server ip and port
 		//start socket
+
+		server := socket.NewServer(roomConfig.Room)
+		server.Init()
 
 	},
 }
