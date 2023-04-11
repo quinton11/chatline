@@ -46,7 +46,7 @@ var joinCmd = &cobra.Command{
 		}()
 
 		console := cui.NewChatUi(client, false)
-
+		//go console.UpdateChats()
 		console.Init()
 	},
 }

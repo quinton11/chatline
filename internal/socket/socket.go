@@ -14,14 +14,14 @@ import (
 func NewServer(r utils.Room) *Server {
 	addr := fmt.Sprintf(":%d", r.Port)
 	return &Server{
-		Config:    r,
-		Addr:      addr,
-		EvBuff:    make([]Event, 0),
-		Peers:     make(map[string]*Peer),
-		CloseChan: make(chan struct{}),
-		ReadChan:  make(chan Event),
-		WriteChan: make(chan Event),
-		LeaveChan: make(chan string),
+		Config:     r,
+		Addr:       addr,
+		Peers:      make(map[string]*Peer),
+		UiReadChan: make(chan Event),
+		CloseChan:  make(chan struct{}),
+		ReadChan:   make(chan Event),
+		WriteChan:  make(chan Event),
+		LeaveChan:  make(chan string),
 	}
 }
 
@@ -53,8 +53,9 @@ func (s *Server) Orchestra() {
 		select {
 		case read := <-s.ReadChan:
 			s.EventHandler(read)
-
 		case write := <-s.WriteChan:
+			//pass to ui
+			s.UiReadChan <- write
 			s.WriteEvent(write)
 
 		case client := <-s.LeaveChan:
@@ -68,21 +69,10 @@ func (s *Server) Orchestra() {
 }
 
 func (s *Server) EventHandler(ev Event) {
-	//check scopes
-	if ev.Scope == InitEvent {
-		//update peer object
-		fmt.Printf("\nInit Event from %s\n", ev.Body.From)
-
-	} else if ev.Scope == LeaveEvent {
-		//push to peer object
-		fmt.Printf("\nLeave Event from %s\n", ev.Body.From)
-
-	} else if ev.Scope == ChatEvent {
-		//push to peer object
-		//fmt.Printf("\nChat Event from %s\n", ev.Body.From)
-		s.WriteEvent(ev)
-		//push event to chat buffer
-	}
+	//add to event buffer
+	//use mutex
+	s.UiReadChan <- ev
+	s.WriteEvent(ev)
 }
 
 // write event to client
