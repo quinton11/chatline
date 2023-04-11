@@ -5,6 +5,7 @@ import (
 
 	"github.com/manifoldco/promptui"
 	"github.com/quinton11/chatline/config"
+	"github.com/quinton11/chatline/internal/cui"
 	"github.com/quinton11/chatline/internal/socket"
 	"github.com/quinton11/chatline/internal/utils"
 
@@ -33,7 +34,17 @@ var hostCmd = &cobra.Command{
 		//start socket
 
 		server := socket.NewServer(roomConfig.Room)
-		server.Init()
+		go server.Init()
+
+		console := cui.NewChatUi(server, true)
+
+		//console ui
+		console.Init()
+		/*
+			ZXlKaGJHY2lPaUpJVXpJMU5pSXNJblI1Y0NJNklrcFhWQ0o5LmV5SlNiMjl0SWpwN0ltNWhiV1VpT2lKM1lXNXdhWE4xUUd4MVptWjVJaXdpZFhWcFpDSTZJamMwWWpneFpUTm1MV1kyTWpBdE5HVmxaQzFoTjJNNExUTTFNbVE0T1RJd01XWmhOQ0lzSW1odmMzUWlPaUl4T1RJdU1UWTRMakV3TUM0eE1pSXNJbkJ2Y25RaU9qVTFOREI5TENKbGVIQWlPakUyT0RFeU1qTXhORGQ5LmFIaFdjMDVaNmlDTlJoWEhPaFJram1EbWstaUo5N1lGRHJjcnFGc0hEMHM=
+
+			NzRiODFlM2YtZjYyMC00ZWVkLWE3YzgtMzUyZDg5MjAxZmE0
+		*/
 
 	},
 }

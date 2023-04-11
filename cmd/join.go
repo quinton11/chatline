@@ -5,6 +5,7 @@ import (
 	"log"
 
 	"github.com/manifoldco/promptui"
+	"github.com/quinton11/chatline/internal/cui"
 	"github.com/quinton11/chatline/internal/socket"
 	"github.com/quinton11/chatline/internal/utils"
 	"github.com/spf13/cobra"
@@ -36,11 +37,17 @@ var joinCmd = &cobra.Command{
 
 		client := socket.NewClient(room)
 
-		err = client.Connect()
-		if err != nil {
-			//Handle error
-			log.Fatal(err)
-		}
+		go func() {
+			err = client.Connect()
+			if err != nil {
+				//Handle error
+				log.Fatal(err)
+			}
+		}()
+
+		console := cui.NewChatUi(client, false)
+
+		console.Init()
 	},
 }
 

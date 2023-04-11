@@ -16,6 +16,8 @@ func NewServer(r utils.Room) *Server {
 	return &Server{
 		Config:    r,
 		Addr:      addr,
+		EvBuff:    make([]Event, 0),
+		Peers:     make(map[string]*Peer),
 		CloseChan: make(chan struct{}),
 		ReadChan:  make(chan Event),
 		WriteChan: make(chan Event),
@@ -35,7 +37,7 @@ func (s *Server) Init() error {
 	s.Listener = listener
 
 	//orchestrate - set up channels to listen
-	s.Orchestra()
+	go s.Orchestra()
 
 	//accept connections
 	go s.Accept()
@@ -77,7 +79,9 @@ func (s *Server) EventHandler(ev Event) {
 
 	} else if ev.Scope == ChatEvent {
 		//push to peer object
-		fmt.Printf("\nChat Event from %s\n", ev.Body.From)
+		//fmt.Printf("\nChat Event from %s\n", ev.Body.From)
+		s.WriteEvent(ev)
+		//push event to chat buffer
 	}
 }
 
@@ -105,8 +109,7 @@ func (s *Server) Accept() {
 		if err != nil {
 			fmt.Println(err)
 		}
-		fmt.Printf("\n Connection: %s", conn.RemoteAddr())
-
+		//fmt.Printf("\n Connection: %s", conn.RemoteAddr())
 		peer := NewPeer(conn)
 		s.Peers[conn.RemoteAddr().String()] = peer
 
@@ -125,7 +128,7 @@ func (s *Server) HandleConn(conn net.Conn) {
 		n, err := conn.Read(buff)
 		if err != nil {
 			fmt.Printf("Read error: %s", err.Error())
-			continue
+			break
 		}
 
 		msg := buff[:n]
@@ -142,8 +145,8 @@ func (s *Server) HandleConn(conn net.Conn) {
 
 }
 
-func CreateEvent(from string, m string, scope string) Event {
-	msg := Message{From: from, Body: m}
+func (s *Server) CreateEvent(m string, scope string) Event {
+	msg := Message{From: s.Config.Host, Body: m}
 	ev := Event{Scope: scope, Body: msg}
 	return ev
 }
