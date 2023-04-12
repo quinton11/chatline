@@ -2,16 +2,24 @@ package socket
 
 import (
 	"net"
+	"sync"
 
 	"github.com/quinton11/chatline/internal/utils"
 )
 
 type Socket interface {
+	GetRoomName() string
+	GetWriteChan() chan Event
+	GetUiReadChan() chan Event
+	GetUserName() string
+	CreateEvent(string, string) Event
 }
 
 type Server struct {
+	Mu         sync.Mutex
 	Config     utils.Room
 	Listener   net.Listener
+	Name       string
 	Addr       string
 	Peers      map[string]*Peer
 	UiReadChan chan Event
@@ -22,6 +30,7 @@ type Server struct {
 }
 
 type Client struct {
+	User       string
 	Room       utils.Room
 	Conn       net.Conn
 	Port       int

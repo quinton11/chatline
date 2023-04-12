@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"fmt"
+	"log"
 
 	"github.com/manifoldco/promptui"
 	"github.com/quinton11/chatline/config"
@@ -24,43 +25,30 @@ var hostCmd = &cobra.Command{
 		var roomConfig utils.RoomConfig
 		err := config.ReadConfig(&roomConfig)
 		if err != nil {
-			panic(err)
+			log.Fatal(err)
 		}
-
-		fmt.Println(roomConfig)
-		fmt.Printf("Hosting Room: %s", roomConfig.Room.Name)
-
-		//verify server ip and port
-		//start socket
 
 		server := socket.NewServer(roomConfig.Room)
 		go server.Init()
 
-		console := cui.NewChatUi(server, true)
+		console := cui.NewChatUi(server)
 
-		//console ui
-		//go console.UpdateChats()
-		console.Init()
 		/*
-			ZXlKaGJHY2lPaUpJVXpJMU5pSXNJblI1Y0NJNklrcFhWQ0o5LmV5SlNiMjl0SWpwN0ltNWhiV1VpT2lKblpYSnRZU0lzSW5WMWFXUWlPaUk1WTJFNU56SmtPQzA1T0RFd0xUUmhNV0l0T0RVMFlpMDBZMlJoTVdZNU56Z3lZalVpTENKb2IzTjBJam9pTVRreUxqRTJPQzR4TURBdU1USWlMQ0p3YjNKMElqbzFOVFF3ZlN3aVpYaHdJam94TmpneE1qVXlNRFkwZlEuWFZ2VVV3T1F6cGVYQ2lyZUZlTEVKQTdxcjF3Y0dUTHFQX1Bkc2pSbnN2QQ==
+			ZXlKaGJHY2lPaUpJVXpJMU5pSXNJblI1Y0NJNklrcFhWQ0o5LmV5SlNiMjl0SWpwN0ltNWhiV1VpT2lKbmIzQm9aWEp6SWl3aWRYVnBaQ0k2SW1ObVl6SXlNVGd5TFRnME5ESXROR00zTWkxaE5qUTVMVGc1TURVeU1XWTJaV00yWmlJc0ltaHZjM1FpT2lJeE9USXVNVFk0TGpFd01DNHhNaUlzSW5CdmNuUWlPalUxTkRCOUxDSmxlSEFpT2pFMk9ERXlPVGczTkROOS55RWFkbG1fcXZBWnpBYktqYVIyYUFaeHRUMVRuek9FZ1RLMEVqWXR4OGZn
 
-			OWNhOTcyZDgtOTgxMC00YTFiLTg1NGItNGNkYTFmOTc4MmI1
+			Y2ZjMjIxODItODQ0Mi00YzcyLWE2NDktODkwNTIxZjZlYzZm
 		*/
 
+		//console ui
+		console.Init()
 	},
 }
 
 func init() {
-	//hostCmd.Flags().BoolP("host", "o", true, hostCmd.Short)
 	rootCmd.AddCommand(hostCmd)
 }
 
 func RoomHashPrompt() (string, error) {
-	validate := func(input string) error {
-		/* validate if signed obj is a room type */
-		return nil
-	}
-
 	templates := &promptui.PromptTemplates{
 		Prompt:  "{{ . }}",
 		Valid:   "{{ . | green }}",
@@ -70,7 +58,6 @@ func RoomHashPrompt() (string, error) {
 	prompt := promptui.Prompt{
 		Label:       "Room Hash: ",
 		HideEntered: true,
-		Validate:    validate,
 		Templates:   templates,
 	}
 

@@ -8,10 +8,11 @@ import (
 	"github.com/quinton11/chatline/internal/utils"
 )
 
-func NewClient(room utils.Room) *Client {
+func NewClient(room utils.Room, name string) *Client {
 	return &Client{
 		Room:       room,
 		Port:       5050,
+		User:       name,
 		UiReadChan: make(chan Event),
 		ReadChan:   make(chan Event),
 		WriteChan:  make(chan Event),
@@ -31,6 +32,9 @@ func (c *Client) Connect() error {
 
 	c.Conn = conn
 
+	//write init event with user name
+	c.WriteChan <- c.CreateEvent("Joined Conversation", InitEvent)
+
 	err = c.Read()
 	if err != nil {
 		return err
@@ -44,6 +48,8 @@ func (c *Client) Read() error {
 	for {
 		n, err := c.Conn.Read(buff)
 		if err != nil {
+			fmt.Println("Error in reading")
+			fmt.Println(err)
 			return err
 		}
 
@@ -51,7 +57,6 @@ func (c *Client) Read() error {
 		var ev Event
 		err = json.Unmarshal(msg, &ev)
 		if err != nil {
-			fmt.Println("Couldn't parse event")
 			continue
 		}
 
@@ -60,9 +65,9 @@ func (c *Client) Read() error {
 	}
 }
 
-// remove worker
-// call read write functionality in console ui
+// on read write events
 func (c *Client) Worker() {
+	fmt.Println("Starting Worker")
 	for {
 		select {
 		case read := <-c.ReadChan:
@@ -80,13 +85,9 @@ func (c *Client) Worker() {
 	}
 }
 
-func (c *Client) HandleRead(ev Event) error {
-	//handle event
-	//push mssage to buffer
-	//use mutex
+func (c *Client) HandleRead(ev Event) {
+	//push event to ui
 	c.UiReadChan <- ev
-
-	return nil
 }
 func (c *Client) HandleWrite(ev Event) error {
 	b, err := json.Marshal(ev)
@@ -97,13 +98,34 @@ func (c *Client) HandleWrite(ev Event) error {
 	if err != nil {
 		return err
 	}
+
 	//add to buffer
+	c.UiReadChan <- ev
 	return nil
 }
 
 func (c *Client) CreateEvent(txt string, event string) Event {
-	msg := Message{From: c.Conn.LocalAddr().String(), Body: txt}
+	msg := Message{From: c.User, Body: txt}
 	ev := Event{Scope: event, Body: msg}
 
 	return ev
+}
+
+func (c *Client) GetRoomName() string {
+	return c.Room.Name
+}
+
+// get write chan
+func (c *Client) GetWriteChan() chan Event {
+	return c.WriteChan
+}
+
+// get uiread chan
+func (c *Client) GetUiReadChan() chan Event {
+	return c.UiReadChan
+}
+
+// get user name
+func (c *Client) GetUserName() string {
+	return c.User
 }

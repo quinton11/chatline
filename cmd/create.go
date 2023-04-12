@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"fmt"
+	"log"
 
 	"github.com/manifoldco/promptui"
 	"github.com/spf13/cobra"
@@ -18,16 +19,14 @@ var createCmd = &cobra.Command{
 		fmt.Println(cmd.Long)
 		name, err := CreateRoomPrompt()
 		if err != nil {
-			panic(err)
+			log.Fatal(err)
 		}
-		fmt.Println(name)
 
 		//get ip
 		ip, err := utils.GetServerIp()
 		if err != nil {
 			panic(err)
 		}
-		fmt.Println(ip)
 
 		//create room uuid, get port and ip
 		//port
@@ -39,7 +38,7 @@ var createCmd = &cobra.Command{
 		//convert to jwt
 		token, err := utils.GenerateToken(room)
 		if err != nil {
-			panic(err)
+			log.Fatal(err)
 		}
 
 		//create hash and print it out
@@ -51,21 +50,13 @@ var createCmd = &cobra.Command{
 		fmt.Printf("RoomKey: %s \n", sHash)
 		err = config.WriteConfig(utils.RoomConfig{Room: room, Key: sHash})
 		if err != nil {
-			panic(err)
+			log.Fatal(err)
 		}
-
-		/*
-			Give name to room
-			Create hash of server details and print to console.
-			Show prompt to start session
-			Start session to read and write message to and from stdout and socket
-		*/
 	},
 }
 
 func init() {
 	//start
-	//startCmd.Flags().BoolP("start", "s", true, startCmd.Short)
 	rootCmd.AddCommand(createCmd)
 }
 

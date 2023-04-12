@@ -11,37 +11,26 @@ import (
 )
 
 var (
-	blue  = color.New(color.FgBlue)
-	green = color.New(color.FgGreen)
+	blue    = color.New(color.FgBlue)
+	green   = color.New(color.FgGreen)
+	magenta = "\u001b[35m"
+	red     = "\u001b[31m"
 )
 
 type Chatui struct {
-	gui      *gocui.Gui
-	client   *socket.Client
-	server   *socket.Server
-	isserver bool
+	gui    *gocui.Gui
+	socket socket.Socket
 }
 
-func NewChatUi(typ interface{}, isserver bool) *Chatui {
+func NewChatUi(typ socket.Socket) *Chatui {
 	g, err := gocui.NewGui(gocui.OutputNormal)
 	if err != nil {
 		log.Panicln(err)
 	}
 
-	if isserver {
-		serv := typ.(*socket.Server)
-		return &Chatui{
-			gui:      g,
-			server:   serv,
-			isserver: isserver,
-		}
-	}
-
-	cl := typ.(*socket.Client)
 	return &Chatui{
-		gui:      g,
-		client:   cl,
-		isserver: isserver,
+		gui:    g,
+		socket: typ,
 	}
 }
 
@@ -61,13 +50,10 @@ func (c *Chatui) Init() error {
 		return err
 	}
 
-	/* if !c.isserver {
-		go c.UpdateChats()
-
-	} */
 	go c.UpdateChats()
 
 	//start mainloops
+
 	if err := c.gui.MainLoop(); err != nil && err != gocui.ErrQuit {
 		return err
 	}
@@ -106,12 +92,8 @@ func (c *Chatui) layout(g *gocui.Gui) error {
 		p.Title = "Peers"
 		p.Autoscroll = true
 		p.Wrap = true
-		rm := ""
-		if c.isserver {
-			rm = c.server.Config.Name
-		} else {
-			rm = c.client.Room.Name
-		}
+
+		rm := c.socket.GetRoomName()
 		fmt.Fprintf(p, "Room: %s\n", rm)
 
 	}
@@ -152,16 +134,9 @@ func (c *Chatui) sendChat(g *gocui.Gui, v *gocui.View) error {
 		v.Clear()
 		return nil
 	}
-	var ev socket.Event
-	if c.isserver {
-		ev = c.server.CreateEvent(v.Buffer(), socket.ChatEvent)
-		//fmt.Println(ev)
-		c.server.WriteChan <- ev
-	} else {
-		ev = c.client.CreateEvent(v.Buffer(), socket.ChatEvent)
-		//fmt.Println(ev)
-		c.client.WriteChan <- ev
-	}
+
+	ev := c.socket.CreateEvent(v.Buffer(), socket.ChatEvent)
+	c.socket.GetWriteChan() <- ev
 
 	v.SetCursor(0, 0)
 	v.Clear()
@@ -170,58 +145,44 @@ func (c *Chatui) sendChat(g *gocui.Gui, v *gocui.View) error {
 
 func (c *Chatui) UpdateChats() {
 	for {
-		if !c.isserver {
-			ev := <-c.client.UiReadChan
-			//instead use separate event buffer
-			//allows you push both incoming and outgoing events to ui
-			c.gui.Update(func(g *gocui.Gui) error {
-				//sync mutex lock
-				//loop through event buffer
-				view, _ := c.gui.View("chats")
+		ev := <-c.socket.GetUiReadChan()
+		c.gui.Update(func(g *gocui.Gui) error {
+			view, _ := c.gui.View("chats")
 
-				msg := formatEvent(ev)
+			msg := formatEvent(ev, c.socket.GetUserName())
+			fmt.Fprintln(view, msg)
 
-				//view.Clear()
-				fmt.Fprintln(view, msg)
-				return nil
-			})
-		} else {
-			ev := <-c.server.UiReadChan
-			c.gui.Update(func(g *gocui.Gui) error {
-				//sync mutex lock
-				//loop through event buffer
-				view, _ := c.gui.View("chats")
-
-				msg := formatEvent(ev)
-
-				//view.Clear()
-				fmt.Fprintln(view, msg)
-				return nil
-			})
-		}
+			//check if event is init
+			//if so update peers block
+			//update with format room name \n Connected: number
+			//connected increments on every init event and decreases on every leave event
+			return nil
+		})
 
 	}
 }
 
-func formatEvent(ev socket.Event) string {
+func formatEvent(ev socket.Event, you string) string {
 	var msg string
 	from := ev.Body.From
 	switch {
 	case ev.Scope == socket.InitEvent:
-		fmt.Println("")
-	case ev.Scope == socket.ChatEvent:
-		//get from and msg
-		//format: [from]: msg(blue)
+		if from == you {
+			msg = fmt.Sprintf("%s[You] %s", magenta, ev.Body.Body)
 
-		//if from is you : msg(green)
-		if from == "You" {
-			msg = blue.Sprintf("[%s]: %s", from, ev.Body.Body)
+		} else {
+			msg = fmt.Sprintf("%s[%s] %s", magenta, from, ev.Body.Body)
+
+		}
+	case ev.Scope == socket.ChatEvent:
+		if from == you {
+			msg = blue.Sprintf("[You]: %s", ev.Body.Body)
 		} else {
 			msg = green.Sprintf("[%s]: %s", from, ev.Body.Body)
 		}
 
 	case ev.Scope == socket.LeaveEvent:
-		fmt.Println("")
+		msg = fmt.Sprintf("%s[%s] %s", red, from, ev.Body.Body)
 	}
 	return msg
 }

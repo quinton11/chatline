@@ -4,7 +4,6 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"errors"
-	"fmt"
 	"net"
 	"strings"
 	"time"
@@ -64,7 +63,7 @@ func GenerateToken(room Room) (string, error) {
 	key := base64.StdEncoding.EncodeToString([]byte(room.Uuid))
 	jtokenString, err := jtoken.SignedString([]byte(key))
 	if err != nil {
-		return "", nil
+		return "", err
 	}
 
 	return jtokenString, nil
@@ -73,7 +72,6 @@ func GenerateToken(room Room) (string, error) {
 func ValidateToken(token string, key string) (Room, error) {
 	tok, err := jwt.Parse(token, func(t *jwt.Token) (interface{}, error) {
 		if _, ok := t.Method.(*jwt.SigningMethodHMAC); !ok {
-			fmt.Println("Error in parsing token")
 
 			return nil, errors.New("error in parsing room token")
 		}

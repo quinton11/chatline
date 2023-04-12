@@ -16,6 +16,7 @@ func NewServer(r utils.Room) *Server {
 	return &Server{
 		Config:     r,
 		Addr:       addr,
+		Name:       "Host",
 		Peers:      make(map[string]*Peer),
 		UiReadChan: make(chan Event),
 		CloseChan:  make(chan struct{}),
@@ -60,17 +61,17 @@ func (s *Server) Orchestra() {
 
 		case client := <-s.LeaveChan:
 			//remove client from pool
-			p := s.Peers[client]
-			fmt.Printf("\n Peer %s disconnected", p.Name)
+			//p := s.Peers[client]
+			s.Mu.Lock()
 			delete(s.Peers, client)
+			s.Mu.Unlock()
 
 		}
 	}
 }
 
 func (s *Server) EventHandler(ev Event) {
-	//add to event buffer
-	//use mutex
+	//if scope is init event, update peer name
 	s.UiReadChan <- ev
 	s.WriteEvent(ev)
 }
@@ -81,7 +82,7 @@ func (s *Server) WriteEvent(ev Event) {
 	if err != nil {
 		log.Fatal(err)
 	}
-
+	s.Mu.Lock()
 	for _, v := range s.Peers {
 		if v.Name != ev.Body.From {
 			_, err = v.Conn.Write(b)
@@ -91,6 +92,7 @@ func (s *Server) WriteEvent(ev Event) {
 			}
 		}
 	}
+	s.Mu.Unlock()
 }
 
 func (s *Server) Accept() {
@@ -99,9 +101,12 @@ func (s *Server) Accept() {
 		if err != nil {
 			fmt.Println(err)
 		}
-		//fmt.Printf("\n Connection: %s", conn.RemoteAddr())
+
 		peer := NewPeer(conn)
+
+		s.Mu.Lock()
 		s.Peers[conn.RemoteAddr().String()] = peer
+		s.Mu.Unlock()
 
 		go s.HandleConn(conn)
 	}
@@ -110,35 +115,78 @@ func (s *Server) Accept() {
 // read and listen to conn
 func (s *Server) HandleConn(conn net.Conn) {
 	defer func() {
-		s.LeaveChan <- conn.RemoteAddr().String()
 		conn.Close()
 	}()
 	buff := make([]byte, 2048)
 	for {
 		n, err := conn.Read(buff)
 		if err != nil {
-			fmt.Printf("Read error: %s", err.Error())
 			break
 		}
 
 		msg := buff[:n]
-		//fmt.Println(string(msg))
+
 		var ev Event
 		err = json.Unmarshal(msg, &ev)
 		if err != nil {
 			fmt.Printf("Unmarshal error: %s", err.Error())
 		}
 
+		if ev.Scope == InitEvent {
+			//update peer name
+			s.Mu.Lock()
+			peer := s.Peers[conn.RemoteAddr().String()]
+			peer.Name = ev.Body.From
+			s.Mu.Unlock()
+		}
+
 		//create event
 		s.ReadChan <- ev
 	}
+	//create leave event, push to relevant channels
+	s.LeaveChan <- conn.RemoteAddr().String()
+	p := s.Peers[conn.RemoteAddr().String()]
+	s.WriteChan <- s.LeaveEvent(p.Name)
 
 }
 
+func (s *Server) InitEvent(client string) Event {
+	msg := Message{From: client, Body: "Joined Conversation"}
+	ev := Event{Scope: InitEvent, Body: msg}
+
+	return ev
+}
+
+func (s *Server) LeaveEvent(client string) Event {
+	msg := Message{From: client, Body: "Left Conversation"}
+	ev := Event{Scope: LeaveEvent, Body: msg}
+
+	return ev
+}
+
 func (s *Server) CreateEvent(m string, scope string) Event {
-	msg := Message{From: s.Config.Host, Body: m}
+	msg := Message{From: s.Name, Body: m}
 	ev := Event{Scope: scope, Body: msg}
 	return ev
+}
+
+func (s *Server) GetRoomName() string {
+	return s.Config.Name
+}
+
+// get write chan
+func (s *Server) GetWriteChan() chan Event {
+	return s.WriteChan
+}
+
+// get uiread chan
+func (s *Server) GetUiReadChan() chan Event {
+	return s.UiReadChan
+}
+
+// get user name
+func (s *Server) GetUserName() string {
+	return s.Name
 }
 
 func NewPeer(conn net.Conn) *Peer {
